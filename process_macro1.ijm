@@ -7,6 +7,7 @@ input = getDirectory("Choose a Directory");
 //Array.print(list);
 
 //open(input + list[0]);//this will always open the frist one
+setBatchMode("hide");
 
 processFolder(input); //process folder can be called without 
 

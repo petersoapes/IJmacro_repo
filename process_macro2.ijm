@@ -1,4 +1,5 @@
 //choose directory of new dir
+setBatchMode("hide");
 dir = getDirectory("Choose a Directory");
 print("this is dir "+dir);
 processFolder(dir);
