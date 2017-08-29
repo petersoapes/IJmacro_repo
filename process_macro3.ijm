@@ -1,8 +1,8 @@
-setBatchMode("hide");
+//setBatchMode("hide");
 dir = getDirectory("Choose a Directory");
 print("this is dir "+dir);
 processFolder(dir);
-
+run("Set Scale...", "distance=0 known=0 global");
 //macro3, is for writing out measurements
 //all the images should be good. Time to write the measures!!
 
@@ -15,8 +15,8 @@ function processFolder(input) {
 	Array.print(list);
 	for (i = 0; i < list.length; i++) {
 		print("on list element "+i);
-//if matches CO		
-		if(matches(list[i], ".*CO.*")){ // these images should all be 'approvd'. time for 
+//if matches CO	-- thi'll open up .zip files
+		if( (matches(list[i], ".*CO.*") ) && (!matches(list[i], ".*zip.*") ) && (matches(list[i], ".*tiff.*")) ){ // these images should all be 'approvd'. time for 
 			
 			print("this is an image to process" + list[i]);
 			macro3(dir+list[i]);
@@ -25,7 +25,7 @@ function processFolder(input) {
 	}
 }
 
-function macro3(biv_image){ //rename -- something like print results
+function macro3(biv_image){ //rename -- something like print results	
 	
 	print("this is sc-image "+ biv_image); //biv_image is full path
 	open(biv_image);
@@ -83,7 +83,7 @@ function macro3(biv_image){ //rename -- something like print results
 	var centromereCount = roiManager("count");
 	var blobCount = 0;
 	selectWindow(greenImage);
-	setAutoThreshold("Minimum dark");// this might be the automatic version
+	setAutoThreshold("Minimum dark");// thDOESNis might be the automatic version
 //waitForUser("Step 1, Thresholding", "Adjust threshold for foci signal then press OK" );
 	run("Analyze Particles...", "size=4-Infinity exclude add");//size=6 also works well
 //relook at size of green foci
@@ -103,8 +103,8 @@ function macro3(biv_image){ //rename -- something like print results
 	run("Convert to Mask");
 	run("Despeckle");
 	setBatchMode("hide");
-	run("Invert LUT");//inverting LUT required for correct RD performance -- remove popup
-	run("Ridge Detection", "line_width=2 high_contrast=255 low_contrast=240 extend_line show_junction_points show_ids displayresults add_to_manager method_for_overlap_resolution=SLOPE sigma=1.2 lower_threshold=16.83 upper_threshold=40");
+	//run("Invert LUT");//inverting LUT required for correct RD performance -- remove popup
+	run("Ridge Detection", "line_width=2 high_contrast=255 low_contrast=240 extend_line show_ids displayresults add_to_manager method_for_overlap_resolution=SLOPE sigma=1.27 lower_threshold=16.83 upper_threshold=40");
 
 	var SC_index = 0;
 	var scCount = 0;
@@ -210,27 +210,36 @@ function macro3(biv_image){ //rename -- something like print results
 			}
 		}
 	print("foci array made, this might be useful later ");
-
 	Array.print(foci_array);// 1,2,3
-
 //now that foci array is made, check that all of the foci are within the one blobject
 	final_foci_array = newArray();
 	for(ff=0; ff < foci_array.length; ff++ ){ //this should be the array
 		print("testing if blobject roi contains foci roi ");
 		roiManager("Select", foci_array[ff]); //
 		print("the roi selected is "+ Roi.getName() );
-		Roi.getBounds(ff_x, ff_y, ff_width, ff_height);
-		print("these are the coords "+ ff_x + " " +ff_y);
+//get foci coordins
+		Roi.getCoordinates(ff_x, ff_y);
+		//Roi.getBounds(ff_x, ff_y, ff_width, ff_height);//
+//try isNear(x1,x2,y1,y2)	--still requries SC coordinates	
+		print("these are the coords "+ ff_x[1] + " " +ff_y[1]);
 		roiManager("deselect");
 		roiManager("Select", roiManager("count")-1 );//this should be the same for the whole loop
 		print("the 'blob' selected is " + Roi.getName() );
-		if(Roi.contains(ff_x, ff_y)){
-			print("blobject contains foci "+foci_array[ff]);
-			final_foci_array = Array.concat(final_foci_array, foci_array[ff]);
-		} 
-		else {
-			print("blobject DOESNT contain foci "+foci_array[ff] + "  " + ff_x +" " + ff_y);
+//blob should be bigger than sc skel
+//the middle bound is not always acurate
+		//newArray(seq(ff_x-3, ff_x+3));//make a sequence of new x and y valuescxzcx
+		//newArray()
+		foci_paired = false;		
+		for(ff_x_i=0; ff_x_i < ff_x.length && !foci_paired; ff_x_i++ ){ 
+			//use Roi contain, because i don't want to loop through all sc pixels/coordins		
+			if(Roi.contains(ff_x[ff_x_i], ff_y[ff_x_i])){
+				print("blobject contains foci "+foci_array[ff]);
+				foci_paired = true;
+				final_foci_array = Array.concat(final_foci_array, foci_array[ff]); // this adds the foci each time	
+				} else {
+			print("blobject DOESNT contain foci "+foci_array[ff] + "  " + ff_x[ff_x_i] +" " + ff_y[ff_x_i]);
 //change name in roiManager, adjust foci array
+			}
 		}
 	}
 	print("this final array should only be foci in blobject");
@@ -243,10 +252,12 @@ function macro3(biv_image){ //rename -- something like print results
 	if(final_foci_array.length <=1){
 		print("IFD will be empty");
 	}
-	if(final_foci_array.length == 2){
-//make unique vars for each foci
+	if(final_foci_array.length == 2){  //make unique vars for each foci
+		print("the final foci array is 2, ");
 		roiManager("select", SC_index);
-		getSelectionCoordinates(SCx, SCy);
+		print("this is sc indx "+ SC_index);
+//		Roi.getCoordinates(SCx, SCy);
+		getSelectionCoordinates(SCx, SCy);  // not sure how these two selection coordinates differ
 		roiManager("Select", SC_index);
 		rev_stat = Roi.getProperty("reverse");//reverse status might not be being set.
 		print("this is rev stat before making result array "+ rev_stat);
@@ -257,49 +268,56 @@ function macro3(biv_image){ //rename -- something like print results
 //X coord, Y coord, sc index, roi index
 		F1_WAout = walk_array(final_foci_array[0], SCx, SCy);//walk-array to get index	
 		print("this is the 1WA arrays"); //these arrays are empty
-		Array.print(F1_WAout);
-		
+		Array.print(F1_WAout);		
 		F2_WAout = walk_array(final_foci_array[1], SCx, SCy);
 		print("this is the 2WA arrays");
-		Array.print(F2_WAout);
-		
+		Array.print(F2_WAout);	
 		IFD = splineMeasure(SC_index, F1_WAout[2], F2_WAout[2]);//these indeces were out of range for 11
 		}
+//assemble the results output
 	measure_array = Array.concat(measure_array, IFD);
 
-	for(f=1; f < SC_index; f++) { //loop through the foci rois -- if there are muliutple SC's this will mess up
-		print("adding the foci positions to the measure ");
+//Code for spline measure of foci position
+	for(f=1; f < SC_index; f++){ //if there are muliutple SC's this will mess up
+		print("adding the foci positions to the measure. SC index " + SC_index);
 		roiManager("select", SC_index);
-//still need to check reverse array
-		getSelectionCoordinates(SCx, SCy);//
+		Roi.getCoordinates(SCx, SCy);
+	//	getSelectionCoordinates(SCx, SCy);//
 		roiManager("Select", SC_index);
 		rev_stat = Roi.getProperty("reverse");
 		print("this is rev stat before making result array "+ rev_stat);
+		
 		if(rev_stat=="yes"){ //i think this is working, even though SplineMeasure has loops for accounting for reverse
 			SCx = Array.reverse(SCx); //if there are more foci, this will reverse twice
 			SCy = Array.reverse(SCy); //only run the reverse on first foci
-	}
-	WAout = walk_array(f, SCx, SCy);//walk-array to get index	
-	print("this is the walk array array");
-	Array.print(WAout); //reverse array didn't apply
+			}		
+		WAout = walk_array(f, SCx, SCy);//walk-array to get index	
+//why is this WA empty? for current image, when foci is outside of SC, this won't let WA work properly
+//write an escape loop for empyt WA loops before proceeding to spline measure
+		if(WAout.length >1){ //if WAout is filled, proceed (else skip
+			print("this is the walk array array");
+//what has to go right fo walk arra y to be full?		
+			Array.print(WAout); //reverse array didn't apply
 //define the SC index ... will this always be last roi? second to last roi?
-	foci_pos = splineMeasure(SC_index, 0, WAout[2]); //f needs to be the index that the foci is in
+//make a if loop for checking if WA is full
+			foci_pos = splineMeasure(SC_index, 0, WAout[2]); //recurent error
 //concate foci info to array
-	measure_array = Array.concat(measure_array, foci_pos);
-	print("this is the new measure array ");
-	Array.print(measure_array);
-}//foci loop
+			measure_array = Array.concat(measure_array, foci_pos);
+			print("this is the new measure array ");
+			Array.print(measure_array);
+			}else{
+				print("WA was empty");
+			}
+		}
+		//foci loop
 	measure_array[0] = cell_name;
 	print("this is the measure array before it's printed to file ");
-
 	Array.print(measure_array);
 //create the text file, //set the correct path -- for within the current dir 
 //f = File.open("");
-
 	path = dir + "result.txt";
 //put the results into an array, then print
 //printing array values to a text value is sensitive
-
 	for(re=0; re < measure_array.length; re++){ //this should loop through the result array	
 		//print("first array val " + re);
 		val = measure_array[re];//strangely calling an array[indx], will include a \n 
@@ -307,10 +325,8 @@ function macro3(biv_image){ //rename -- something like print results
 		File.append( measure_array[re] + "\t", path);
 		}//printing array
 	File.append("\n ", path);
-	close("*");
-	
+	close("*");	
 	roiManager("save", cell_path+file_name_list[0]+ObjClass+"_rois.zip");
-	
 	roiManager("reset");
 //reset results
 	close("Results");
@@ -347,15 +363,13 @@ function makeBlob(cen){
  			print(" sc contains cent pixel");
  			roiManager("deselect");
  			roiManager("Select", cen);
-
  			//I got the blob making to fix itself one time
 			if(Roi.contains(SCx[1], SCy[1])){  //change this to [5], since some ends of SC extend past centromere
 				print(cen + " " + SC_index + "SC array starts at centromere");
 				Roi.setProperty("reverse", "no");//this is set for centromeres
 				reverse_status = "no";
 				//paired=true;
-				roiManager("update");//update required to set property in play
-				
+				roiManager("update");//update required to set property in play				
 				}
 			print("checking reverse loop");
 			if(Roi.contains(SCx[SCx.length-1], SCy[SCy.length-1])) { //if cent contains end of SC
@@ -367,19 +381,25 @@ function makeBlob(cen){
 				Roi.setProperty("reverse", "yes");//set for centromeres
 				//paired=true;
 				roiManager("update");
-				}
-		
+				}	
 			run("Measure");
 			roiManager("update");
 		 	blob_parts = Array.concat(cen, SC_index);//noncen = SC
 		 	Array.print(blob_parts);
 		 	//roiManager("Select", blob_parts);//roiManager("Select", newArray(cen, noncen)) doesn't work
-		   	roiManager("Select", Array.concat(cen, SC_index) );
-		   		
+		   	roiManager("Select", Array.concat(cen, SC_index) );		   		
 		   	roiManager("Combine");
 			roiManager("Add");//new object
+			
+//set rev status to SC	
+			roiManager("deselect");		
+			roiManager("Select", SC_index);
+			Roi.setProperty("reverse", reverse_status);
+			
 			roiManager("deselect");
 			roiManager("Select", roiManager("count")-1); //select the new roi
+//newly added to make sure rev status is correct			
+			Roi.setProperty("reverse", reverse_status);
 			roiManager("Rename", roiManager("index")+"_blob");
 			print("blob made");
 			print("last part of setting blob properties");

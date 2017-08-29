@@ -23,8 +23,7 @@ function processFolder(input) {
 			//processFolder(input + File.separator + list[i]);
 		if(matches(list[i], ".*.tif.*")){
 			print("this is an image " + list[i]);
-			//make a folder -- and save 
-			
+			//make a folder -- and save 			
 			CropSC(list[i]);
 		}
 	}
@@ -36,6 +35,7 @@ function CropSC(image){ //rename to something more discriptive, CropSCbiv
 	image_name = substring(image,  0, lengthOf(image)-4);
 	File.makeDirectory(input+image_name);
 	open(input + image);
+	run("Set Scale...", "distance=0 known=0 global");
 	saveAs("Tiff", input+image_name +File.separator +image_name+".tif");
 	print("this is  input "+input);
 	print("trying to open image " + image);
@@ -86,6 +86,8 @@ function CropSC(image){ //rename to something more discriptive, CropSCbiv
 		roiManager("update");
 		print("entering loop to crop SCs");
 		run("Crop");
+//make composite.don't make composite, I think that it messes up things in macro 2
+//		run("Make Composite");
 		print("preparing to save "+ input+ image_name + File.separator + Roi.getName()+".tiff");
   		saveAs("Tiff", input+image_name+File.separator +Roi.getName()+".tiff");
   		close();

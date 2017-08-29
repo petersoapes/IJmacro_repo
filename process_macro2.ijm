@@ -61,6 +61,7 @@ function blobject(SC_image){ // macro2, make-count blobject
 	selectWindow(T);
 	run("Duplicate...", "title=duplicate duplicate");
 	selectWindow(T);
+	run("Set Scale...", "distance=0 known=0 global");
 	
 	run("Stack to Images");	
 	selectImage(2);
@@ -76,7 +77,7 @@ function blobject(SC_image){ // macro2, make-count blobject
 	print("channels seperated");
 
 	selectWindow(blueImage);//if too much blue signal -- skip image // or adjust threshold level?
-	setAutoThreshold("Default dark");//some 
+	setAutoThreshold("Minimum dark");//some 
 	run("Convert to Mask");
 	run("Despeckle");
 	run("Dilate");
@@ -101,7 +102,7 @@ function blobject(SC_image){ // macro2, make-count blobject
 	setAutoThreshold("Otsu dark");
 	run("Convert to Mask");
 	run("Despeckle");
-	run("Invert LUT");//inverting LUT required for correct RD performance -- remove popup
+//	run("Invert LUT");//inverting LUT required for correct RD performance -- remove popup
 	run("Ridge Detection", "line_width=2 high_contrast=255 low_contrast=240 extend_line show_junction_points show_ids displayresults add_to_manager method_for_overlap_resolution=SLOPE sigma=1.2 lower_threshold=16.83 upper_threshold=40");
 //sigma 1.2, lower 16.83, upper 40
 
@@ -126,34 +127,92 @@ function blobject(SC_image){ // macro2, make-count blobject
 	selectWindow(fociChannel);//change to foci channel
 	setAutoThreshold("Minimum dark");// this might be the automatic version
 	run("Analyze Particles...", "size=4-Infinity exclude add");//size=6 also works well
-
+	
 	var fociCount = 0;
 	for(f=centromereCount+scCount;f<roiManager("count");f++) {
 		fociCount++;
 		roiManager("select", f);
 		roiManager("Rename", roiManager("index")+ "foci_"+ fociCount);
+//this is called annotating an image. it can be destructive (permanat or non-distructive)
 		roiManager("update");
 	}//end green channel processing
 	print("foci added to manager");
 
-//MAKE BLOB
-	for(cen=0; cen < roiManager("count");cen++){
-		roiManager("Select",cen);
-		if(matches(Roi.getName(), ".*centromere.*")) {
+//consider refining foci array
+//for(i=0; i < roiManager("count");i++){
+//		roiManager("Select",i);
+//		if(matches(Roi.getName(), ".*foci.*")) {
+//			foci_array = Array.concat(foci_array, i);
+//			}
+//		}
+//	print("foci array made, this might be useful later ");
+//	Array.print(foci_array);// 1,2,3
+
+//MAKE BLOB. this takes too much time for cenCount > 4.
+	if(centromereCount <=2 ){
+		for(cen=0; cen < roiManager("count");cen++){
 			roiManager("Select",cen);
-			makeBlob(cen);
+			if(matches(Roi.getName(), ".*centromere.*")) {
+				roiManager("Select",cen);
+				makeBlob(cen);
 //			Roi.getCoordinates(centx, centy);
-			roiManager("update");
+				roiManager("update");
 			//blobCount++; //redundant
-			}
-		}// fociCount+1 should be sc
+				}
+			}// fociCount+1 should be sc	
 	var ObjClass = "_CO" + fociCount;
 	print("objclass " + ObjClass);
 	print("this is blobcount "+blobCount);
-
+	} else {
+		print("centromere count high. Don't call bloject on all of them");
+	}
+	var processed = false; 
 //what do I do after blob is made? -- rename as blobCount
-//discard or keep
-	if(fociCount <= 6){ // foci count is proxy of objclass
+//discard or keep	
+	if( (fociCount >= 6) && (processed == false) ){  /// this high ObjClass biv might be a XY -- maybe 'discard' thi
+		print("too many foci, move to a discard folder");
+		discard = "discard";
+		dirDiscard = input+File.separator+"discard";
+		File.makeDirectory(dirDiscard); //are these making new discard dirs
+		selectImage(1);
+		//selectWindow(1);
+		processed = true;
+		saveAs("Tiff", dirDiscard + File.separator+filename_indx + ObjClass +".tiff");
+		File.delete(SC_image);
+//had problems saving these to discard
+	}//foci count more than 6
+	if( (scCount > 1) && (processed == false) ){
+		print("too many sc pieces, move to a discard folder");
+		discard = "discard";
+		dirDiscard = input+File.separator+"discard";
+		File.makeDirectory(dirDiscard);		
+		selectImage(1);
+		//selectWindow(1);//i think this window is being saved over
+		saveAs("Tiff", dirDiscard + File.separator+T);//the file is saved.
+		print("deleting old file in excess sc loop ");
+		File.delete(SC_image);
+		counter=15; // break out of loop -- i don't think counter in function works
+		processed = true;
+		roiManager("reset");
+		//close("*");//try to close all the files
+ 		wait(500);
+		}
+	if( (centromereCount > 1) && (processed == false) ){
+		print("too many centromeres, move to a discard folder");
+		discard = "discard";
+		dirDiscard = input+File.separator+"discard";
+		File.makeDirectory(dirDiscard);
+		selectImage(1);
+		saveAs("Tiff", dirDiscard + File.separator+T);//the file is saved.	
+		print("deleting old file in centromere loop ");	
+		File.delete(SC_image);
+		counter=15; // break out of loop -- i don't think counter in function works
+		roiManager("reset");
+		//close("*");//try to close all the files
+ 		processed = true;
+ 		wait(500);		
+		}//when everything is deleted here ... then tries to process red image.. fatal error.	
+	if( (fociCount <= 6) && (processed == false) ){ // foci count is proxy of objclass
 		print("number of foci acceptable");
 		mainTitle=T; //why?
 		selectWindow("duplicate");
@@ -161,53 +220,24 @@ function blobject(SC_image){ // macro2, make-count blobject
 		mainTitle_path = substring(mainTitle,  0, indexOf(mainTitle, '.tif'));//remove tiff
 		print("going to rename "+ SC_image+" to "+ filename_indx + ObjClass); // don't use i
 //the correct image is not being saved	
+		run("Make Composite");
 		saveAs("Tiff", input + filename_indx + ObjClass +".tiff");//change to the object variable
-		print("deleting old file in good blojct loop " + SC_image);
-		File.delete(SC_image);//this made it work
-	}
-	if(fociCount >= 6){  /// this high ObjClass biv might be a XY -- maybe 'discard' thi
-		print("too many foci, move to a discard folder");
-		discard = "discard";
-		dirDiscard = input+File.separator+"discard";
-		File.makeDirectory(dirDiscard); //are these making new discard dirs
 		
-		selectWindow("duplicate");
-		saveAs("Tiff", dirDiscard + File.separator+filename_indx + ObjClass +".tiff");
-		File.delete(SC_image);
-//had problems saving these to discard
-	}//foci count more than 6
-	if(scCount > 1){
-		print("too many sc pieces, move to a discard folder");
-		discard = "discard";
-		dirDiscard = input+File.separator+"discard";
-		File.makeDirectory(dirDiscard);
-		selectWindow("duplicate");//
-		saveAs("Tiff", dirDiscard + File.separator+T);//the file is saved.
-		
-		print("deleting old file in excess sc loop ");
-		File.delete(SC_image);
-		counter=15; // break out of loop -- i don't think counter in function works
-		roiManager("reset");
-		//close("*");//try to close all the files
- 		wait(500);
-
+		for(ffcc=centromereCount+scCount;ffcc < centromereCount+scCount+fociCount;ffcc++) {
+			//fociCount++;
+			print("for yello foci, on "+ffcc);
+			roiManager("select", ffcc);
+			roiManager("Set Color", "yellow");
+			roiManager("Set Line Width", 1);
+			run("Add Selection...");
+			run("Flatten");//save png	
 		}
-	if(centromereCount > 1){
-		print("too many centromeres, move to a discard folder");
-		discard = "discard";
-		dirDiscard = input+File.separator+"discard";
-		File.makeDirectory(dirDiscard);
-		selectWindow("duplicate");//
-		saveAs("Tiff", dirDiscard + File.separator+T);//the file is saved.
-		
-		print("deleting old file in centromere loop ");
-		File.delete(SC_image);
-		counter=15; // break out of loop -- i don't think counter in function works
-		roiManager("reset");
-		//close("*");//try to close all the files
- 		wait(500);		
-		}//when everything is deleted here ... then tries to process red image.. fatal error.
+		saveAs("PNG", input + filename_indx + ObjClass + ".png" );
+		print("deleting old file in good blojct loop " + SC_image);
 	
+		File.delete(SC_image);//this made it work	
+		processed = true;
+	}
 	roiManager("reset");
 	print("about to close all windows ");
 	close("*");//try to close all the files.  close all wild card
@@ -227,7 +257,7 @@ function makeBlob(cen){
 
 	roiManager("Select", SC_index);//just select SC instead of looping through all
 	print("selecting noncen/SC " + SC_index);//1
-	Roi.getCoordinates(SCx, SCy);
+	Roi.getCoordinates(SCx, SCy);//these are throwing errors sometimes
 	print("getting SC coordinates");
 	print("a SC coord "+ SCx[2]);
 	
