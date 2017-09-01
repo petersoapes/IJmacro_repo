@@ -18,6 +18,10 @@ Runs on directories (SC folders) with 'good' SCs, creates a txt file with the SC
 Running these macros.
 Open macro 1 in ImageJ, select an image folder. Run macro 2 and macro 3 on one of the newly made directories.
 
+Parameter changes for BD data
+Ridge detection;
+
+composite to RGB
 
 ### Data sets to measure
   - optimize with manual data set (AP and BD data sets). Determine which parameters produce most consistance between datasets.
