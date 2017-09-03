@@ -7,7 +7,7 @@ input = getDirectory("Choose a Directory");
 //Array.print(list);
 
 //open(input + list[0]);//this will always open the frist one
-setBatchMode("hide");
+//setBatchMode("hide");
 
 processFolder(input); //process folder can be called without 
 
@@ -35,17 +35,30 @@ function CropSC(image){ //rename to something more discriptive, CropSCbiv
 	image_name = substring(image,  0, lengthOf(image)-4);
 	File.makeDirectory(input+image_name);
 	open(input + image);
-	run("Set Scale...", "distance=0 known=0 global");
-	saveAs("Tiff", input+image_name +File.separator +image_name+".tif");
-	print("this is  input "+input);
+
 	print("trying to open image " + image);
 	selectImage(1);
 	orig = getTitle();
 	print("selected image 1 " +getTitle());
-	run("Duplicate...", "title=duplicate duplicate");
+	run("RGB Color");//this command is needed for BD images
+	
+	run("Set Scale...", "distance=0 known=0 global");
+//this image is all red...	
 
-	selectImage(2);
+	
+	
+	saveAs("Tiff", input+image_name +File.separator +image_name+".tiff");
+	print("this is  input "+input);
+	
+	print("trying to open image " + image);
+	selectImage(1);
+	orig = getTitle();
+	print("selected image 1 " +getTitle());
+	//run("Duplicate...", "title=duplicate duplicate");
+
+//	selectImage(2);
 	run("Stack to Images"); // think this is throwing stack to binary error (why is this here)?
+	
 	selectImage(2);
 	print("selected image 2 " +getTitle());
 	redImage = getTitle();
@@ -63,7 +76,7 @@ function CropSC(image){ //rename to something more discriptive, CropSCbiv
 	print("selecting red channel");
 	selectWindow(redImage);
 	print("first red threshold");
-	setAutoThreshold("Minimum dark");
+	setAutoThreshold("Default dark");//for BD data
 	run("Convert to Mask");
 	run("Dilate"); // i think dilate requires binary
 	run("Dilate");
@@ -75,7 +88,6 @@ function CropSC(image){ //rename to something more discriptive, CropSCbiv
 
 	var scCount = 0;
 	for(r=0;  r < roiManager("count"); r++ ) {
-//select r
 		selectImage(orig);
 		run("Duplicate...", "title=duplicate duplicate");//new images might need to be duplicated each time
 		selectWindow("duplicate");
