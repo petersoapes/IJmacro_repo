@@ -1,5 +1,9 @@
-## Mini macro repo
+TODO:
+* make sure macro's for AP data are functional
+* merge macros into a full automated script (then take to HTC)
+* fix the recurrent WA[2p] error
 
+## Mini macro repo
 This macro which runs on imageJ has been written to analyze and quantify features of immunofluorescence prophase I meiocytes. Specifically the goals for this macro are to 1) measure the length of red shapes (bivalents Synaptonemal Complex (SC) ), 2) calculate the chromosome region that MLH1 foci occur (as percentage of SC length and 3) measure the interfocal distance of bivalents with more than 2 foci.
 Trying to design a pipeline to link together the 3 macros.
 
@@ -17,3 +21,12 @@ Runs on directories (SC folders) with 'good' SCs, creates a txt file with the SC
 
 Running these macros.
 Open macro 1 in ImageJ, select an image folder. Run macro 2 and macro 3 on one of the newly made directories.
+
+Parameter changes for BD data
+Ridge detection;
+
+composite to RGB
+
+### Data sets to measure
+  - optimize with manual data set (AP and BD data sets). Determine which parameters produce most consistance between datasets.
+  - Juvinille vs mature

@@ -7,6 +7,7 @@ processFolder(dir);
 //macro2 should act on croped blob images made by macro1
 //aspects of image, independant of blobjects,  (just on image sizes)
 //macro2 is meant to segregate obvertly bad SC images to a discard folder, and rename the 'good' images
+//
 function processFolder(input) {
 	list = getFileList(input);
 	list = Array.sort(list);
@@ -71,6 +72,7 @@ function blobject(SC_image){ // macro2, make-count blobject
 	blueImage = getTitle();
 	imageCalculator("and", greenImage, redImage);
 	setAutoThreshold("Shanbhag dark");
+	
 	setOption("BlackBackground", true);
 	fociChannel = getTitle();
 	print("channels seperated");
@@ -102,8 +104,7 @@ function blobject(SC_image){ // macro2, make-count blobject
 	run("Convert to Mask");
 	run("Despeckle");
 //	run("Invert LUT");//inverting LUT required for correct RD performance -- remove popup
-	run("Ridge Detection", "line_width=2 high_contrast=255 low_contrast=240 extend_line show_junction_points show_ids displayresults add_to_manager method_for_overlap_resolution=SLOPE sigma=1.2 lower_threshold=16.83 upper_threshold=40");
-//sigma 1.2, lower 16.83, upper 40
+	run("Ridge Detection", "line_width=1.75 high_contrast=255 low_contrast=240 extend_line show_ids displayresults add_to_manager method_for_overlap_resolution=SLOPE sigma=1.4 lower_threshold=2 upper_threshold=35");
 
 	var scCount = 0;
 	var SC_index = 0;
@@ -172,12 +173,11 @@ function blobject(SC_image){ // macro2, make-count blobject
 		print("too many foci, move to a discard folder");
 		discard = "discard";
 		dirDiscard = input+File.separator+"discard";
-		File.makeDirectory(dirDiscard); //are these making new discard dirs
+		File.makeDirectory(dirDiscard); //are these making new discard dirs		
 		selectImage(1);
-		run("RGB Color");
 		//selectWindow(1);
-		processed = true;
-		
+		run("RGB Color");
+		processed = true;		
 		saveAs("Tiff", dirDiscard + File.separator+filename_indx + ObjClass +".tiff");
 		File.delete(SC_image);
 //had problems saving these to discard
@@ -204,6 +204,8 @@ function blobject(SC_image){ // macro2, make-count blobject
 		dirDiscard = input+File.separator+"discard";
 		File.makeDirectory(dirDiscard);
 		selectImage(1);
+		run("RGB Color");
+		
 		saveAs("Tiff", dirDiscard + File.separator+T);//the file is saved.	
 		print("deleting old file in centromere loop ");	
 		File.delete(SC_image);
@@ -217,11 +219,13 @@ function blobject(SC_image){ // macro2, make-count blobject
 		print("number of foci acceptable");
 		mainTitle=T; //why?
 		selectWindow("duplicate");
+		run("RGB Color");
+		
 		print("getTitle result "+ mainTitle);
 		mainTitle_path = substring(mainTitle,  0, indexOf(mainTitle, '.tif'));//remove tiff
 		print("going to rename "+ SC_image+" to "+ filename_indx + ObjClass); // don't use i
 //the correct image is not being saved	
-		run("Make Composite");
+		//run("Make Composite");	
 		saveAs("Tiff", input + filename_indx + ObjClass +".tiff");//change to the object variable
 		
 		for(ffcc=centromereCount+scCount;ffcc < centromereCount+scCount+fociCount;ffcc++) {
