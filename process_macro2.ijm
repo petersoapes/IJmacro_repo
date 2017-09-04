@@ -7,7 +7,6 @@ processFolder(dir);
 //macro2 should act on croped blob images made by macro1
 //aspects of image, independant of blobjects,  (just on image sizes)
 //macro2 is meant to segregate obvertly bad SC images to a discard folder, and rename the 'good' images
-//
 function processFolder(input) {
 	list = getFileList(input);
 	list = Array.sort(list);
