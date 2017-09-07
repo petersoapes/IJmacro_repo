@@ -1,6 +1,5 @@
 TODO:
-* make sure macro's for AP data are functional
-* merge macros into a full automated script (then take to HTC)
+* merge macros into a full automated script
 * fix the recurrent WA[2p] error
 
 ## Mini macro repo
@@ -22,10 +21,12 @@ Runs on directories (SC folders) with 'good' SCs, creates a txt file with the SC
 Running these macros.
 Open macro 1 in ImageJ, select an image folder. Run macro 2 and macro 3 on one of the newly made directories.
 
-Parameter changes for BD data
-Ridge detection;
 
-composite to RGB
+### Parameter changes for BD data
+Ridge detection; wider line, different sigmas and min max thresholds.
+
+make(composite) to run(RGB)
+
 
 ### Data sets to measure
   - optimize with manual data set (AP and BD data sets). Determine which parameters produce most consistance between datasets.
