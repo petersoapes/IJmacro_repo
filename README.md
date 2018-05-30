@@ -1,4 +1,5 @@
 TODO:
+* upload 2 versions; slow vs automated (or make seperate repos)
 * merge macros into a full automated script
 * fix the recurrent WA[2p] error
 
